@@ -561,10 +561,6 @@ pre{
   <section id="limitations">
     <h2>Scope and limitations</h2>
     <ol class="limits">
-      <li><strong>Where it helps.</strong> ALRA&rsquo;s effectiveness tracks how directly a shift
-        rescales the mapping from action to motion. Under the 10&times; mass increase, which alters
-        the agent&rsquo;s momentum rather than the gain relating action to motion, no method, ALRA
-        or the representational baselines, recovers more than a small share of the degradation.</li>
       <li><strong>A single environment.</strong> All results are on PointMaze-Medium; whether the
         action-space decomposition holds under contact-rich dynamics, where a shift may act on a
         manipulated object rather than the agent, remains open.</li>
@@ -574,6 +570,10 @@ pre{
         tuning advantage the baselines were not given.</li>
       <li><strong>Per-episode recalibration.</strong> The residual is reset at the start of each
         episode and never persisted, so ALRA does not accumulate a correction across deployment.</li>
+      <li><strong>Where it helps.</strong> ALRA&rsquo;s effectiveness tracks how directly a shift
+        rescales the mapping from action to motion. Under the 10&times; mass increase, which alters
+        the agent&rsquo;s momentum rather than the gain relating action to motion, no method, ALRA
+        or the representational baselines, recovers more than a small share of the degradation.</li>
     </ol>
   </section>
 
