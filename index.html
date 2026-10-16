@@ -3,244 +3,381 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ALRA — Action-Latent Residual Adaptation for World Models</title>
+<title>ALRA: Action-Latent Residual Adaptation for World Models</title>
 <meta name="description" content="A 210-parameter affine residual on the action embedding of a frozen latent world model matches sub-network fine-tuning under test-time dynamics shifts.">
+<meta name="theme-color" content="#0E1117">
 
-<!-- Open Graph: replace URLs once the site is live -->
-<meta property="og:title" content="ALRA — Action-Latent Residual Adaptation for World Models">
-<meta property="og:description" content="210 parameters match a 10-million-parameter update under test-time dynamics shift.">
+<meta property="og:title" content="ALRA: Action-Latent Residual Adaptation for World Models">
+<meta property="og:description" content="A 210-parameter affine residual on the action embedding matches the strongest AdaJEPA baseline, which fine-tunes ~10^7 parameters, under test-time dynamics shifts.">
 <meta property="og:type" content="website">
-<!-- <meta property="og:image" content="https://YOURNAME.github.io/alra/architecture.png"> -->
+<meta property="og:url" content="https://alra-neurips.github.io/">
+<meta property="og:image" content="https://alra-neurips.github.io/architecture.png">
+<meta name="twitter:card" content="summary_large_image">
 
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2714%27 fill=%27%230E1117%27/%3E%3Ctext x=%2732%27 y=%2745%27 font-family=%27Georgia,serif%27 font-size=%2740%27 font-weight=%27700%27 text-anchor=%27middle%27 fill=%27%234CC38A%27%3EA%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 <style>
 :root{
-  --ink:#16202E;          /* maze wall navy — primary text */
-  --ink-soft:#54637A;     /* secondary text */
-  --rule:#D8DDE4;         /* hairlines */
-  --paper:#F5F6F7;        /* page ground */
-  --tan:#E0A164;          /* maze floor — accent */
-  --green:#2E8B57;        /* trajectory trace — "ours" */
+  --bg:#0E1117;
+  --bg-raised:#151A23;
+  --bg-sunk:#0A0D12;
+  --line:#242C38;
+  --line-strong:#334052;
+  --text:#E7EBF0;
+  --text-soft:#A3AEBD;
+  --text-faint:#728096;
+  --tan:#E0A164;          /* maze floor */
+  --green:#4CC38A;        /* trajectory trace: ALRA */
+  --green-bg:rgba(76,195,138,.08);
+  --figure:#FFFFFF;
 
-  --col:52rem;            /* single column: text, figures, table all share it */
+  --serif:"Source Serif 4",Georgia,serif;
+  --sans:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+
+  --col:56rem;
 }
 
 *{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
 
 body{
   margin:0;
-  background:var(--paper);
-  color:var(--ink);
-  font-family:"Source Serif 4",Georgia,serif;
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
   font-size:16px;
-  line-height:1.55;
-  font-variant-numeric:oldstyle-nums;
+  line-height:1.6;
 }
 
 .wrap{max-width:var(--col);margin:0 auto;padding:0 1.25rem}
 
-a{color:var(--ink);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px;text-decoration-color:var(--tan)}
-a:hover{text-decoration-color:var(--ink)}
-a:focus-visible{outline:2px solid var(--green);outline-offset:3px;border-radius:2px}
+a{color:var(--text);text-decoration:underline;text-decoration-color:var(--tan);text-decoration-thickness:1px;text-underline-offset:3px}
+a:hover{text-decoration-color:var(--text)}
+a:focus-visible,button:focus-visible{outline:2px solid var(--green);outline-offset:3px;border-radius:4px}
 
-p{margin:0 0 .9rem}
+p{margin:0 0 .8rem}
+p,li,figcaption{text-wrap:pretty}
+h1,h2,h3{text-wrap:balance}
+sup{line-height:0}
 
-/* ---------- masthead ---------- */
+/* ---------- hero ---------- */
 
-.masthead{padding:3.25rem 0 1.75rem}
+.hero{
+  position:relative;
+  padding:3.5rem 0 2.25rem;
+  border-bottom:1px solid var(--line);
+  background:
+    radial-gradient(60rem 26rem at 15% -10%, rgba(224,161,100,.10), transparent 60%),
+    radial-gradient(50rem 24rem at 95% 0%, rgba(76,195,138,.08), transparent 60%);
+}
 
-.masthead h1{
-  font-size:clamp(1.9rem,5.5vw,2.75rem);
-  line-height:1.05;
+
+
+.hero h1{
+  margin-top:0;
+  font-family:var(--serif);
+  font-size:clamp(2.6rem,8vw,4.25rem);
+  line-height:1;
   font-weight:700;
-  letter-spacing:-0.02em;
-  margin:0 0 .3rem;
+  letter-spacing:-0.025em;
+  margin:0 0 .45rem;
 }
 
 .subtitle{
-  font-size:1.05rem;
+  font-family:var(--serif);
+  font-size:clamp(1.15rem,3vw,1.45rem);
+  font-weight:500;
   line-height:1.3;
-  color:var(--ink-soft);
-  margin:0 0 1.4rem;
-  max-width:26rem;
+  color:var(--text-soft);
+  margin:0 0 1.25rem;
+  max-width:34rem;
 }
 
-.byline{margin:0 0 1.3rem;font-size:.9rem}
+.authors{margin:0 0 .3rem;font-size:1.05rem;font-weight:500;line-height:1.6}
+.affils{margin:0 0 .15rem;font-size:.9rem;line-height:1.6;color:var(--text-soft)}
+.venue{margin:0 0 1.4rem;font-size:.9rem;line-height:1.6;color:var(--text-soft)}
+.venue-name{color:var(--tan);font-weight:500}
 
-.links{display:flex;flex-wrap:wrap;gap:.45rem;margin:0;padding:0;list-style:none}
+.links{display:flex;flex-wrap:wrap;gap:.6rem;margin:0;padding:0;list-style:none}
 .links a{
-  display:inline-block;
-  padding:.28rem .75rem;
-  border:1px solid var(--ink);
-  border-radius:2px;
+  display:inline-flex;align-items:center;gap:.5rem;
+  padding:.5rem 1rem;
+  border:1px solid var(--line-strong);
+  border-radius:999px;
+  background:var(--bg-raised);
   text-decoration:none;
-  font-size:.87rem;
+  font-size:.9rem;
+  font-weight:500;
+  transition:border-color .15s,background .15s;
 }
-.links a:hover{background:var(--ink);color:var(--paper)}
-.links a:focus-visible{outline-offset:2px}
-.links a[aria-disabled]{cursor:default}
+.links a:hover{border-color:var(--text-soft);background:#1B2230}
+.links svg{width:1rem;height:1rem;fill:currentColor}
 
-/* ---------- the claim ---------- */
+/* ---------- key numbers ---------- */
 
-.claim{border-top:1.5px solid var(--ink);padding:1.6rem 0 2rem}
+.intro{border-top:0;padding:2.25rem 0 1.5rem}
 
-.claim > p{
-  font-size:1.15rem;
-  line-height:1.4;
-  margin:0 0 1.6rem;
+.stats{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:1px;
+  background:var(--line);
+  border:1px solid var(--line);
+  border-radius:10px;
+  overflow:hidden;
+  margin:0 0 2.25rem;
 }
-
-.claim .n{
-  font-family:"IBM Plex Mono",monospace;
-  font-variant-numeric:tabular-nums;
-  font-size:.92em;
-  color:var(--ink);
+.stat{background:var(--bg-raised);padding:1rem 1.15rem}
+.stat .v{
+  font-family:var(--mono);
+  font-size:clamp(1.35rem,3.6vw,1.75rem);
+  font-weight:500;
+  line-height:1.2;
+  letter-spacing:-0.02em;
 }
-
-.note{
-  margin:.8rem 0 0;
-  font-size:.83rem;
-  line-height:1.45;
-  color:var(--ink-soft);
-}
+.stat .v.us{color:var(--green)}
+.stat .v small{font-size:.55em;color:var(--text-soft);letter-spacing:0}
+.stat .k{font-size:.82rem;line-height:1.45;color:var(--text-soft);margin-top:.35rem}
 
 /* ---------- sections ---------- */
 
-section{padding:2rem 0;border-top:1px solid var(--rule)}
+section{padding:2.25rem 0;border-top:1px solid var(--line)}
+main{padding-bottom:1.5rem}
 
-h2{font-size:1.15rem;font-weight:600;letter-spacing:-0.01em;margin:0 0 .9rem}
-h3{font-size:.98rem;font-weight:600;margin:1.6rem 0 .5rem}
+h2{
+  font-family:var(--serif);
+  font-size:1.6rem;
+  font-weight:600;
+  letter-spacing:-0.01em;
+  line-height:1.2;
+  margin:0 0 .9rem;
+}
+h3{font-size:1rem;font-weight:600;margin:1.5rem 0 .5rem}
+
+.lead{color:var(--text-soft)}
+
+code{font-family:var(--mono);font-size:.86em;color:inherit}
+thead code,.roll-head code,.roll-row figcaption code{font-size:1em}
 
 /* ---------- figures ---------- */
 
-figure{margin:0 0 1.5rem}
+figure{margin:0 0 1.25rem}
 
-figure img,figure video{
+.panel{
   display:block;
-  width:100%;
-  height:auto;
-  background:#fff;
-  border:1px solid var(--rule);
-  border-radius:2px;
+  background:var(--figure);
+  border-radius:10px;
+  padding:clamp(.6rem,2vw,1.25rem);
+  box-shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 12px 32px rgba(0,0,0,.35);
 }
+.panel img{display:block;width:100%;height:auto}
 
-figcaption{margin-top:.5rem;font-size:.83rem;line-height:1.45;color:var(--ink-soft)}
+figcaption{margin-top:.6rem;font-size:.85rem;line-height:1.55;color:var(--text-soft)}
+figcaption b{color:var(--text);font-weight:600}
 
-.video-pair{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:.9rem;
-  margin-bottom:.6rem;
+/* ---------- equation ---------- */
+
+.eq{
+  background:var(--bg-sunk);
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:.85rem 1.15rem;
+  margin:0 0 1rem;
+  font-family:var(--serif);
+  font-size:1.08rem;
+  line-height:1.9;
+  overflow-x:auto;
+  white-space:nowrap;
 }
-.video-pair > div > p{margin:0 0 .35rem;font-size:.87rem;font-weight:600}
-.row-label{
-  margin:1.1rem 0 .4rem;
-  font-size:.87rem;
-  font-weight:600;
-  border-top:1px solid var(--rule);
-  padding-top:.7rem;
-}
-.row-label span{font-weight:400;color:var(--ink-soft)}
-.video-pair video{
-  display:block;
-  width:100%;
-  height:auto;
-  background:#fff;
-  border:1px solid var(--rule);
-  border-radius:2px;
-}
+.eq .row{display:block}
+.eq i{font-style:italic}
+.eq .hl{color:var(--green)}
+.eq .bb{font-family:"STIX Two Math","Cambria Math","Latin Modern Math",serif;font-size:1.15em}
+.eq .note-inline{font-family:var(--sans);font-size:.82rem;color:var(--text-faint);margin-left:1.5rem}
 
 /* ---------- table ---------- */
 
-.table-scroll{overflow-x:auto;margin-bottom:.7rem;-webkit-overflow-scrolling:touch}
-
-table{border-collapse:collapse;width:100%;min-width:36rem;font-size:.85rem}
-
-th,td{
-  text-align:right;
-  padding:.42rem .55rem;
-  border-bottom:1px solid var(--rule);
-  white-space:nowrap;
+.table-scroll{
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:var(--bg-raised);
+  margin:0 0 .9rem;
 }
-th:first-child,td:first-child{text-align:left;white-space:normal}
+
+table{border-collapse:collapse;width:100%;min-width:44rem;font-size:.85rem}
+
+th,td{text-align:right;padding:.55rem .8rem;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+tbody tr:last-child td{border-bottom:0}
 
 thead th{
   font-weight:600;
   font-size:.78rem;
-  color:var(--ink-soft);
-  border-bottom:1.5px solid var(--ink);
+  color:var(--text-soft);
+  background:var(--bg-sunk);
   vertical-align:bottom;
 }
 
-tbody td{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;font-size:.78rem}
-tbody td:first-child{font-family:"Source Serif 4",Georgia,serif;font-size:.85rem}
+tbody td{font-family:var(--mono);font-size:.8rem;color:var(--text-soft)}
+tbody td:first-child{font-family:var(--sans);font-size:.86rem;color:var(--text)}
 
-.ours{background:rgba(46,139,87,.07)}
-thead .ours{color:var(--green)}
-.gain{color:var(--ink-soft)}
-.best{font-weight:600}
+.pm{color:var(--text-faint)}
+.gain{display:block;font-size:.72rem;color:var(--text-faint);margin-top:.1rem}
+td.best .m{color:var(--text);font-weight:500}
+td.best .m::after{content:"";display:inline-block;width:.38rem;height:.38rem;margin-left:.4rem;border-radius:50%;background:var(--tan);vertical-align:middle}
 
-/* ---------- bibtex ---------- */
+.ours{background:var(--green-bg)}
+thead th.ours{color:var(--green);background:#10241B}
+tr.params td{color:var(--text-soft)}
+tr.params td.ours{color:var(--green);font-weight:500}
 
+.note{font-size:.83rem;line-height:1.55;color:var(--text-faint);margin:0}
+
+/* ---------- callout ---------- */
+
+.callout{
+  border-left:2px solid var(--green);
+  background:var(--bg-raised);
+  border-radius:0 8px 8px 0;
+  padding:.85rem 1.15rem;
+  margin:1.1rem 0 0;
+}
+.callout p:last-child{margin:0}
+.num{font-family:var(--mono);font-size:.92em;color:var(--text)}
+
+/* ---------- rollouts ---------- */
+
+.roll-head,.roll-row{display:grid;grid-template-columns:repeat(3,1fr);gap:.4rem .75rem;align-items:start}
+.roll-grid{max-width:40rem;margin:0 auto}
+.roll-head{margin-bottom:.4rem}
+.roll-head div{font-size:.8rem;font-weight:600;color:var(--text-soft);text-align:center}
+.roll-head div.ours{color:var(--green);background:none}
+.roll-row{padding:.7rem 0 .8rem;border-top:1px solid var(--line)}
+.roll-label{grid-column:1/-1;font-size:.92rem;font-weight:600;line-height:1.4}
+.roll-label span{font-weight:400;color:var(--text-faint);margin-left:.5rem}
+.roll-row figure{margin:0}
+.roll-row video{display:block;width:100%;height:auto;border-radius:6px;background:#1B2533}
+.roll-row figcaption{display:none}
+
+/* ---------- lists ---------- */
+
+.limits{margin:0;padding:0;list-style:none;counter-reset:l}
+.limits li{position:relative;padding:0 0 0 2.25rem;margin:0 0 .65rem;color:var(--text-soft)}
+.limits li::before{
+  counter-increment:l;content:counter(l);
+  position:absolute;left:0;top:.05rem;
+  width:1.5rem;height:1.5rem;border-radius:50%;
+  border:1px solid var(--line-strong);
+  font-family:var(--mono);font-size:.75rem;line-height:1.45rem;text-align:center;color:var(--text-soft);
+}
+.limits strong{color:var(--text);font-weight:600}
+
+/* ---------- overview / bibtex ---------- */
+
+.summary p{font-family:var(--serif);font-weight:400;font-size:1.08rem;line-height:1.6;color:var(--text);margin:0 0 .75rem}
+.summary p:last-child{margin:0}
+
+.code-wrap{position:relative}
 pre{
-  background:var(--ink);
-  color:#E9EDF2;
-  padding:.9rem 1.1rem;
-  border-radius:2px;
+  background:var(--bg-sunk);
+  color:#D6DEE8;
+  border:1px solid var(--line);
+  padding:1.1rem 1.25rem;
+  border-radius:10px;
   overflow-x:auto;
-  font-family:"IBM Plex Mono",monospace;
-  font-size:.76rem;
-  line-height:1.55;
+  font-family:var(--mono);
+  font-size:.8rem;
+  line-height:1.6;
   margin:0;
 }
+.copy{
+  position:absolute;top:.6rem;right:.6rem;
+  font:500 .75rem var(--sans);
+  color:var(--text-soft);
+  background:var(--bg-raised);
+  border:1px solid var(--line-strong);
+  border-radius:6px;
+  padding:.3rem .6rem;
+  cursor:pointer;
+}
+.copy:hover{color:var(--text);border-color:var(--text-soft)}
 
-/* ---------- page foot ---------- */
 
-main{padding-bottom:5rem}
+/* ---------- responsive ---------- */
 
-@media (max-width:640px){
-  .masthead{padding:2.25rem 0 1.5rem}
-  section{padding:1.6rem 0}
-  .video-pair{grid-template-columns:1fr}
+@media (max-width:720px){
+  .hero{padding:2.5rem 0 1.75rem}
+  .stats{grid-template-columns:1fr}
+  section{padding:1.75rem 0}
+  .roll-head{display:none}
+  .roll-row{gap:.5rem}
+  .roll-label span{display:block;margin:.15rem 0 0;font-size:.82rem}
+  .roll-row figcaption{display:block;margin-top:.3rem;font-size:.72rem;text-align:center}
 }
 
 @media (prefers-reduced-motion:reduce){
-  *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+  html{scroll-behavior:auto}
+  *{animation:none!important;transition:none!important}
 }
 </style>
 </head>
 
 <body>
 
-<header class="masthead wrap">
-  <h1>ALRA</h1>
-  <p class="subtitle">Action-Latent Residual Adaptation for World Models</p>
+<header class="hero">
+  <div class="wrap">
+    <h1>ALRA</h1>
+    <p class="subtitle">Action-Latent Residual Adaptation for World Models</p>
 
-  <!-- <p class="byline">[Author One] · [Author Two] · [Author Three]</p>-->
+    <p class="authors">Krishnam Soni, Aditya Sehgal, Vedant Dave, Elmar Rueckert</p>
+    <p class="affils"><a href="https://cps.unileoben.ac.at/" target="_blank" rel="noopener noreferrer">CPS Lab</a>, Montanuniversit&auml;t Leoben</p>
+    <p class="venue"><span class="venue-name">NeurIPS 2026 Workshops</span> &middot; CL4FMAgents &middot; TTCL &middot; PTA</p>
 
-  <!-- Links are inert placeholders: add href once the paper, repo and posting exist. -->
-  <ul class="links">
-    <li><a aria-disabled="true">Paper</a></li>
-    <li><a aria-disabled="true">Code</a></li>
-    <li><a aria-disabled="true">OpenReview</a></li>
-    <li><a aria-disabled="true">BibTeX</a></li>
-  </ul>
+    <ul class="links">
+      <li><a href="https://openreview.net/forum?id=r5DF75OXlT" target="_blank" rel="noopener noreferrer">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 0h5.5L14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2zm5 1.5V5h3.5L9 1.5zM5 8.25a.75.75 0 0 0 0 1.5h6a.75.75 0 0 0 0-1.5H5zm0 3a.75.75 0 0 0 0 1.5h4a.75.75 0 0 0 0-1.5H5z"/></svg>
+        Paper</a></li>
+      <li><a href="https://github.com/krishnams0ni/alra/" target="_blank" rel="noopener noreferrer">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        Code</a></li>
+      <li><a href="#bibtex">BibTeX</a></li>
+    </ul>
+  </div>
 </header>
 
 <div class="wrap">
-  <div class="claim">
-    <p>When a dynamics shift changes how commanded actions translate into motion,
-       the correction fits entirely in the action embedding. Every encoder and the
-       predictor stay frozen.
-       
-       AdaJEPA's strongest variant updates <span class="n">9,934,840</span>
-       parameters at every adaptation step. ALRA updates <span class="n">210</span> — one for
-       every 47,309 — and recovers the same planning performance under a fiftyfold damping
-       increase.</p>
+  <section id="overview" class="summary intro">
+    <h2>Overview</h2>
+    <p>Latent world models lose planning performance when the dynamics change at test time.
+       AdaJEPA recovers some of it by fine-tuning sub-networks of the predictor and visual encoder,
+       on the order of 10<sup>7</sup> parameters, in every episode. ALRA leaves the entire world
+       model frozen and learns only a 210-parameter affine correction to the action embedding,
+       online, from the same self-supervised latent prediction error.</p>
+    <p>On PointMaze-Medium, this matches the strongest AdaJEPA baseline under all three dynamics
+       shifts (50&times; damping, 0.2&times; mass and 10&times; mass) and leaves in-distribution
+       performance unchanged, suggesting that shifts which rescale how actions translate into motion
+       can be corrected in action space alone.</p>
+  </section>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="v us">210</div>
+      <div class="k">parameters adapted online, against 9,934,840 for the strongest AdaJEPA baseline</div>
+    </div>
+    <div class="stat">
+      <div class="v us">~47,000&times;</div>
+      <div class="k">reduction in adapted parameters compared to the strongest AdaJEPA baseline</div>
+    </div>
+    <div class="stat">
+      <div class="v us">+6.6 <small>pp</small></div>
+      <div class="k">average success-rate gain over the frozen model across the three dynamics shifts (strongest AdaJEPA baseline: +6.5 pp)</div>
+    </div>
   </div>
 </div>
 
@@ -249,33 +386,45 @@ main{padding-bottom:5rem}
   <section id="method">
     <h2>Method</h2>
 
-    <!-- FIGURE: export Figure 1 from the paper at ~2× resolution as architecture.png -->
     <figure>
-      <img src="architecture.png"
-           alt="Side-by-side architecture diagram. AdaJEPA adapts the visual encoder's final stage and one transformer block of the predictor. ALRA freezes every existing module and adds a small residual network on the action embedding.">
-      <figcaption>AdaJEPA (left) unfreezes the visual encoder's final stage and one transformer
-        block of the prediction network. ALRA (right) leaves every pretrained module frozen and
-        adds a new affine residual to the action embedding.</figcaption>
+      <a class="panel" href="architecture.png" title="Open full-resolution figure" target="_blank" rel="noopener noreferrer">
+        <img src="architecture.png" width="2108" height="1038"
+             alt="Side-by-side architecture diagram. In AdaJEPA, the visual encoder and the prediction network are adapted while the action and proprioception encoders stay frozen. In ALRA, every encoder and the prediction network stay frozen, and a new residual network takes the action and proprio embeddings and adds its output to the action embedding.">
+      </a>
+      <figcaption><b>Architecture comparison.</b> Snowflakes mark frozen modules, flames adapted ones.
+        (a) AdaJEPA adapts the visual encoder&rsquo;s final stage and one transformer block of the
+        prediction network, while keeping the other encoders frozen. (b) ALRA keeps every existing
+        module entirely frozen and instead adds a new 210-parameter affine residual to the action
+        embedding.</figcaption>
     </figure>
 
-    <p>A latent world model encodes an observation, a proprioceptive state, and an action, then
-       predicts the next latent state. Under a dynamics shift the visual structure of the
-       environment is unchanged; what changes is how a commanded action translates into motion.
-       That is a miscalibration of the action channel, not of the representation.</p>
+    <p>When an agent encounters a dynamics shift, the environment&rsquo;s visual structure is
+       unchanged; what changes is how a commanded action translates into motion. A shift that
+       rescales this action-to-outcome mapping leaves the predictor&rsquo;s visual model intact and
+       manifests instead as a miscalibration of the action channel.</p>
 
-    <p>ALRA computes a residual over the concatenated action and proprioceptive encodings through
-       an affine map — a 10×20 weight matrix and a 10-dimensional bias, 210 parameters in total —
-       and adds it to the action encoding before prediction. The map is zero-initialized, so the
-       first plan of every episode is made by the unmodified pretrained model. It is optimized
-       online against the same latent prediction term used during pre-training, over a replay
-       buffer of the five most recent transitions, with one gradient step per replanning step.</p>
+    <p>ALRA therefore keeps the visual, proprioceptive and action encoders and the predictor entirely
+       frozen, and computes a residual from the concatenated action and proprioceptive embeddings
+       with an affine map <i>g<sub>&omega;</sub></i>:</p>
+
+    <div class="eq" role="math" aria-label="Delta e equals g omega of the concatenated action and proprio embeddings; the adapted action embedding equals the action embedding plus Delta e.">
+      <span class="row">&Delta;<i>e</i>(<i>a<sub>t</sub></i>, <i>p<sub>t</sub></i>; <i>&omega;</i>) = <span class="hl"><i>g<sub>&omega;</sub></i></span>([<i>E<sub>&alpha;</sub></i>(<i>a<sub>t</sub></i>) ; <i>E<sub>&psi;</sub></i>(<i>p<sub>t</sub></i>)])</span>
+      <span class="row"><i>&#7868;<sub>&alpha;</sub></i>(<i>a<sub>t</sub></i>, <i>p<sub>t</sub></i>; <i>&omega;</i>) = <i>E<sub>&alpha;</sub></i>(<i>a<sub>t</sub></i>) + &Delta;<i>e</i>(<i>a<sub>t</sub></i>, <i>p<sub>t</sub></i>; <i>&omega;</i>)<span class="note-inline"><i>W</i> &isin; <span class="bb">&#8477;</span><sup>10&times;20</sup>, <i>b</i> &isin; <span class="bb">&#8477;</span><sup>10</sup>: 210 parameters</span></span>
+    </div>
+
+    <p>The residual is zero-initialized, so adaptation begins exactly at the frozen model, and it is
+       applied to each frame of the history window with weights shared across frames. Within each
+       episode, only these 210 parameters are optimized online, using the latent prediction term of
+       the pre-training objective over a replay buffer of the five most recent transitions, with one
+       gradient step per replanning step. The residual is reset to zero at the start of every
+       episode.</p>
   </section>
 
   <section id="results">
     <h2>Results</h2>
 
-    <p>PointMaze-Medium, 100 episodes across each of 5 seeds. Parenthetical values are within-seed
-       paired differences from the frozen baseline, ± one standard error over seeds.</p>
+    <p class="lead">PointMaze-Medium success rates under test-time dynamics shifts, 5 seeds
+       &times; 100 episodes.</p>
 
     <div class="table-scroll">
       <table>
@@ -283,168 +432,185 @@ main{padding-bottom:5rem}
           <tr>
             <th scope="col">Condition</th>
             <th scope="col">Frozen</th>
-            <th scope="col">predlast+enclast</th>
-            <th scope="col">predfirst+enclast</th>
-            <th scope="col" class="ours">ALRA</th>
+            <th scope="col"><code>predlast+enclast</code></th>
+            <th scope="col"><code>predfirst+enclast</code></th>
+            <th scope="col" class="ours">ALRA (ours)</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td>No shift (control)</td>
-            <td>82.4</td>
-            <td>82.8 <span class="gain">(+0.4 ± 0.9)</span></td>
-            <td class="best">83.4 <span class="gain">(+1.0 ± 0.5)</span></td>
-            <td class="ours">82.6 <span class="gain">(+0.2 ± 0.9)</span></td>
+            <td><span class="m">82.4</span> <span class="pm">&plusmn; 1.9</span></td>
+            <td class="best"><span class="m">82.8</span> <span class="pm">&plusmn; 3.6</span><span class="gain">+0.4 &plusmn; 0.9</span></td>
+            <td class="best"><span class="m">83.4</span> <span class="pm">&plusmn; 3.0</span><span class="gain">+1.0 &plusmn; 0.5</span></td>
+            <td class="best ours"><span class="m">82.6</span> <span class="pm">&plusmn; 1.9</span><span class="gain">+0.2 &plusmn; 0.9</span></td>
           </tr>
           <tr>
-            <td>Damping 50×</td>
-            <td>47.6</td>
-            <td>54.0 <span class="gain">(+6.4 ± 1.2)</span></td>
-            <td class="best">58.0 <span class="gain">(+10.4 ± 1.3)</span></td>
-            <td class="ours best">57.8 <span class="gain">(+10.2 ± 2.1)</span></td>
+            <td>Damping 50&times;</td>
+            <td><span class="m">47.6</span> <span class="pm">&plusmn; 3.2</span></td>
+            <td><span class="m">54.0</span> <span class="pm">&plusmn; 5.3</span><span class="gain">+6.4 &plusmn; 1.2</span></td>
+            <td class="best"><span class="m">58.0</span> <span class="pm">&plusmn; 2.6</span><span class="gain">+10.4 &plusmn; 1.3</span></td>
+            <td class="best ours"><span class="m">57.8</span> <span class="pm">&plusmn; 5.1</span><span class="gain">+10.2 &plusmn; 2.1</span></td>
           </tr>
           <tr>
-            <td>Density 0.2×</td>
-            <td>84.2</td>
-            <td>86.8 <span class="gain">(+2.6 ± 1.3)</span></td>
-            <td class="best">88.0 <span class="gain">(+3.8 ± 1.6)</span></td>
-            <td class="ours best">89.0 <span class="gain">(+4.8 ± 1.5)</span></td>
+            <td>Density 0.2&times;</td>
+            <td><span class="m">84.2</span> <span class="pm">&plusmn; 3.1</span></td>
+            <td><span class="m">86.8</span> <span class="pm">&plusmn; 1.6</span><span class="gain">+2.6 &plusmn; 1.3</span></td>
+            <td class="best"><span class="m">88.0</span> <span class="pm">&plusmn; 3.2</span><span class="gain">+3.8 &plusmn; 1.6</span></td>
+            <td class="best ours"><span class="m">89.0</span> <span class="pm">&plusmn; 4.1</span><span class="gain">+4.8 &plusmn; 1.5</span></td>
           </tr>
           <tr>
-            <td>Density 10×</td>
-            <td>36.4</td>
-            <td>39.6 <span class="gain">(+3.2 ± 1.6)</span></td>
-            <td class="best">41.6 <span class="gain">(+5.2 ± 3.1)</span></td>
-            <td class="ours best">41.2 <span class="gain">(+4.8 ± 3.0)</span></td>
+            <td>Density 10&times;</td>
+            <td><span class="m">36.4</span> <span class="pm">&plusmn; 5.9</span></td>
+            <td class="best"><span class="m">39.6</span> <span class="pm">&plusmn; 6.7</span><span class="gain">+3.2 &plusmn; 1.6</span></td>
+            <td class="best"><span class="m">41.6</span> <span class="pm">&plusmn; 6.9</span><span class="gain">+5.2 &plusmn; 3.1</span></td>
+            <td class="best ours"><span class="m">41.2</span> <span class="pm">&plusmn; 5.9</span><span class="gain">+4.8 &plusmn; 3.0</span></td>
+          </tr>
+          <tr class="params">
+            <td>Adapted parameters</td>
+            <td>0</td>
+            <td>9,935,648</td>
+            <td>9,934,840</td>
+            <td class="ours">210</td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <p class="note">Bold marks the best method in each row and any method within one standard
-       error of it. The frozen column is the reference and is excluded.</p>
+    <p class="note">Values are mean success rates (%) &plusmn; one standard deviation across 5 seeds;
+       the smaller line is the within-seed paired difference from the frozen baseline &plusmn; one
+       standard error of that mean over seeds. A dot marks the best adapted method in each row and
+       any within 2 percentage points of it; the frozen column is the reference and is excluded.</p>
 
-    <h3>Where the benefit comes from</h3>
+    <h3>Adaptation across the episode</h3>
 
-    <!-- FIGURE: export Figure 2 as adaptation_curves.png. This is the most informative
-         plot on the page — it shows the gain accumulating rather than appearing at init. -->
     <figure>
-      <img src="adaptation_curves.png"
-           alt="Four panels showing success rate improvement over the frozen baseline against MPC replanning step, for no shift, damping 50×, density 0.2×, and density 10×.">
-      <figcaption>Improvement over the frozen baseline across MPC replanning steps, differenced
-        within each seed. The residual starts at zero, so every curve begins at no improvement;
-        the gain accumulates over the episode rather than being present at initialization.
-        Shaded regions are ±1 s.e.m. across seeds.</figcaption>
+      <a class="panel" href="adaptation_curves.png" title="Open full-resolution figure" target="_blank" rel="noopener noreferrer">
+        <img src="adaptation_curves.png" width="6356" height="1386" loading="lazy"
+             alt="Four panels, one per condition, plotting success rate improvement over the frozen baseline in percentage points against MPC replanning steps 1 to 20, for predlast+enclast, predfirst+enclast and ALRA.">
+      </a>
+      <figcaption><b>Success rate improvement over the frozen baseline across MPC replanning steps.</b>
+        Curves show cumulative success (an episode counts as successful at every step after it first
+        reaches the goal), averaged over 5 seeds &times; 100 episodes; each adapted arm is differenced
+        against the frozen run of the same seed. Shaded regions show &plusmn;1 standard error of the
+        mean across seeds; the dashed line at zero is the frozen baseline. Endpoints correspond to the
+        gains reported in the table.</figcaption>
     </figure>
+
+    <div class="callout">
+      <p>Under the 50&times; damping shift, ALRA&rsquo;s benefit emerges earlier in the episode: by
+         replanning step 12 it has recovered <span class="num">+19.2</span> points over the frozen
+         baseline, where <code>predfirst+enclast</code> has recovered <span class="num">+5.0</span>,
+         with the two converging by step 20. We attribute this to the size of the adapted parameter
+         set, but do not isolate it from the learning rate, and the effect is specific to this
+         condition.</p>
+    </div>
   </section>
 
   <section id="rollouts">
     <h2>Rollouts</h2>
 
-    <p>One planning episode under each condition, from an identical start and goal throughout,
-       so only the physics changes between rows. Each row compares the frozen world model,
-       AdaJEPA's strongest variant (roughly 10 million parameters fine-tuned online), and ALRA
-       (210).</p>
+    <p class="lead">One planning episode per condition, all from the same start and goal, so only
+       the physics changes between rows. Columns compare the frozen world model, AdaJEPA&rsquo;s
+       <code>predfirst+enclast</code> (9,934,840 parameters adapted online) and ALRA (210).</p>
 
-    <!-- Twelve PointMaze rollouts, env seed 4241, identical start/goal. Regenerate with:
-         python make_traj_figure.py --env-seed 4241 --arms frozen predfirst residual --video -->
-    <p class="row-label">No shift <span>— in-distribution; all three reach the goal</span></p>
-    <div class="video-pair">
-      <div>
-        <p>Frozen</p>
-        <video src="noshift_frozen.mp4" autoplay loop muted playsinline
-               aria-label="Frozen under No shift."></video>
-      </div>
-      <div>
-        <p>predfirst+enclast</p>
-        <video src="noshift_predfirst.mp4" autoplay loop muted playsinline
-               aria-label="predfirst+enclast under No shift."></video>
-      </div>
-      <div>
-        <p>ALRA</p>
-        <video src="noshift_alra.mp4" autoplay loop muted playsinline
-               aria-label="ALRA under No shift."></video>
-      </div>
+    <div class="roll-grid">
+    <div class="roll-head" aria-hidden="true">
+      <div>Frozen</div><div><code>predfirst+enclast</code></div><div class="ours">ALRA (ours)</div>
     </div>
-    <p class="row-label">Damping 50× <span>— the frozen model stalls; both adapted methods recover</span></p>
-    <div class="video-pair">
-      <div>
-        <video src="damping_frozen.mp4" autoplay loop muted playsinline
-               aria-label="Frozen under Damping 50×."></video>
-      </div>
-      <div>
-        <video src="damping_predfirst.mp4" autoplay loop muted playsinline
-               aria-label="predfirst+enclast under Damping 50×."></video>
-      </div>
-      <div>
-        <video src="damping_alra.mp4" autoplay loop muted playsinline
-               aria-label="ALRA under Damping 50×."></video>
-      </div>
+
+    <div class="roll-row">
+      <div class="roll-label">No shift<span>All three reach the goal</span></div>
+      <figure><video src="noshift_frozen.mp4" autoplay loop muted playsinline aria-label="Frozen, no shift"></video><figcaption>Frozen</figcaption></figure>
+      <figure><video src="noshift_predfirst.mp4" autoplay loop muted playsinline aria-label="predfirst+enclast, no shift"></video><figcaption><code>predfirst+enclast</code></figcaption></figure>
+      <figure><video src="noshift_alra.mp4" autoplay loop muted playsinline aria-label="ALRA, no shift"></video><figcaption>ALRA</figcaption></figure>
     </div>
-    <p class="row-label">Density 0.2× <span>— all three reach the goal</span></p>
-    <div class="video-pair">
-      <div>
-        <video src="density02_frozen.mp4" autoplay loop muted playsinline
-               aria-label="Frozen under Density 0.2×."></video>
-      </div>
-      <div>
-        <video src="density02_predfirst.mp4" autoplay loop muted playsinline
-               aria-label="predfirst+enclast under Density 0.2×."></video>
-      </div>
-      <div>
-        <video src="density02_alra.mp4" autoplay loop muted playsinline
-               aria-label="ALRA under Density 0.2×."></video>
-      </div>
+
+    <div class="roll-row">
+      <div class="roll-label">Damping 50&times;<span>The frozen model fails; both adapted methods reach the goal</span></div>
+      <figure><video src="damping_frozen.mp4" autoplay loop muted playsinline aria-label="Frozen, damping 50 times"></video><figcaption>Frozen</figcaption></figure>
+      <figure><video src="damping_predfirst.mp4" autoplay loop muted playsinline aria-label="predfirst+enclast, damping 50 times"></video><figcaption><code>predfirst+enclast</code></figcaption></figure>
+      <figure><video src="damping_alra.mp4" autoplay loop muted playsinline aria-label="ALRA, damping 50 times"></video><figcaption>ALRA</figcaption></figure>
     </div>
-    <p class="row-label">Density 10× <span>— the hardest shift; all three succeed in this episode</span></p>
-    <div class="video-pair">
-      <div>
-        <video src="density10_frozen.mp4" autoplay loop muted playsinline
-               aria-label="Frozen under Density 10×."></video>
-      </div>
-      <div>
-        <video src="density10_predfirst.mp4" autoplay loop muted playsinline
-               aria-label="predfirst+enclast under Density 10×."></video>
-      </div>
-      <div>
-        <video src="density10_alra.mp4" autoplay loop muted playsinline
-               aria-label="ALRA under Density 10×."></video>
-      </div>
+
+    <div class="roll-row">
+      <div class="roll-label">Density 0.2&times;<span>All three reach the goal</span></div>
+      <figure><video src="density02_frozen.mp4" autoplay loop muted playsinline aria-label="Frozen, density 0.2 times"></video><figcaption>Frozen</figcaption></figure>
+      <figure><video src="density02_predfirst.mp4" autoplay loop muted playsinline aria-label="predfirst+enclast, density 0.2 times"></video><figcaption><code>predfirst+enclast</code></figcaption></figure>
+      <figure><video src="density02_alra.mp4" autoplay loop muted playsinline aria-label="ALRA, density 0.2 times"></video><figcaption>ALRA</figcaption></figure>
     </div>
-    <p class="note">Single episodes are not representative of aggregate performance — the
-       quantitative comparison is the table above. Under both density shifts all three methods
-       reach the goal here, consistent with a table in which they sit within a standard error
-       of one another.</p>
+
+    <div class="roll-row">
+      <div class="roll-label">Density 10&times;<span>All three reach the goal in this episode</span></div>
+      <figure><video src="density10_frozen.mp4" autoplay loop muted playsinline aria-label="Frozen, density 10 times"></video><figcaption>Frozen</figcaption></figure>
+      <figure><video src="density10_predfirst.mp4" autoplay loop muted playsinline aria-label="predfirst+enclast, density 10 times"></video><figcaption><code>predfirst+enclast</code></figcaption></figure>
+      <figure><video src="density10_alra.mp4" autoplay loop muted playsinline aria-label="ALRA, density 10 times"></video><figcaption>ALRA</figcaption></figure>
+    </div>
+
+    </div>
+
+    <p class="note" style="margin-top:1rem">The episode was chosen to illustrate the four conditions
+       under a common start and goal; it is not a random draw, and a single episode is not
+       representative of aggregate performance. The quantitative comparison is the table above.</p>
   </section>
 
-  <section id="abstract">
-    <h2>Abstract</h2>
-    <p>Latent world models degrade when deployed under unseen dynamics shifts. Recent test-time
-       adaptation methods such as AdaJEPA address this by fine-tuning selected sub-networks of the
-       predictor and visual encoder online, updating on the order of 10<sup>7</sup> parameters
-       within every episode. We show that such updates are unnecessary when the shift acts on the
-       agent's own dynamics: a 210-parameter affine residual applied to the action embedding, with
-       all encoders and the predictor left entirely frozen, recovers as much planning performance
-       as sub-network fine-tuning. On PointMaze-Medium, this residual matches the strongest
-       AdaJEPA baseline under all three shifts — a fiftyfold damping increase, a fivefold mass
-       reduction, and a tenfold mass increase — improving over the frozen baseline in each while
-       leaving in-distribution performance unchanged, and updating four orders of magnitude
-       fewer parameters. Our results suggest that dynamics shifts which rescale how commanded
-       actions translate into motion can be corrected entirely in action space, leaving the
-       learned visual and proprioceptive representation untouched.</p>
+  <section id="limitations">
+    <h2>Scope and limitations</h2>
+    <ol class="limits">
+      <li><strong>Where it helps.</strong> ALRA&rsquo;s effectiveness tracks how directly a shift
+        rescales the mapping from action to motion. Under the 10&times; mass increase, which alters
+        the agent&rsquo;s momentum rather than the gain relating action to motion, no method, ALRA
+        or the representational baselines, recovers more than a small share of the degradation.</li>
+      <li><strong>A single environment.</strong> All results are on PointMaze-Medium; whether the
+        action-space decomposition holds under contact-rich dynamics, where a shift may act on a
+        manipulated object rather than the agent, remains open.</li>
+      <li><strong>Learning rate per shift family.</strong> ALRA uses &eta; = 10<sup>&minus;2</sup> for
+        the control and damping conditions and 10<sup>&minus;4</sup> for density, whereas the
+        baselines use a single learning rate from the original implementation. This gives ALRA a
+        tuning advantage the baselines were not given.</li>
+      <li><strong>Per-episode recalibration.</strong> The residual is reset at the start of each
+        episode and never persisted, so ALRA does not accumulate a correction across deployment.</li>
+    </ol>
   </section>
+
 
   <section id="bibtex">
     <h2>BibTeX</h2>
-<pre><code>@inproceedings{alra2026,
-  title     = {ALRA: Action-Latent Residual Adaptation for World Models},
-  author    = {[Authors]},
-  booktitle = {[Workshop], NeurIPS},
-  year      = {2026}
+    <div class="code-wrap">
+      <button class="copy" type="button" data-copy="bib">Copy</button>
+<pre><code id="bib">@misc{soni2026alra,
+  title        = {ALRA: Action-Latent Residual Adaptation for World Models},
+  author       = {Soni, Krishnam and Sehgal, Aditya and Dave, Vedant and Rueckert, Elmar},
+  howpublished = {NeurIPS 2026 Workshops (CL4FMAgents, TTCL, PTA)},
+  year         = {2026},
+  url          = {https://openreview.net/forum?id=r5DF75OXlT}
 }</code></pre>
+    </div>
   </section>
 
 </main>
+
+
+<script>
+  document.querySelectorAll("button[data-copy]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var text = document.getElementById(btn.dataset.copy).innerText;
+      navigator.clipboard.writeText(text).then(function () {
+        btn.textContent = "Copied";
+        setTimeout(function () { btn.textContent = "Copy"; }, 1500);
+      });
+    });
+  });
+
+  // Respect reduced-motion: pause looping videos and expose controls instead.
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    document.querySelectorAll("video[autoplay]").forEach(function (v) {
+      v.removeAttribute("autoplay");
+      v.pause();
+      v.controls = true;
+    });
+  }
+</script>
 
 </body>
 </html>
